@@ -1,0 +1,38 @@
+{
+  "name": "SpeakEasyDoc",
+  "version": "0.0.1",
+  "description": "real-time collaborative text editor with end-to-end encryption",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/applefreak/react-app-boilerplate.git"
+  },
+  "main": "index.js",
+  "author": "Janelle Wong, Ksenia Kozhukhovskaya, Justino Mora",
+  "license": "MIT",
+  "scripts": {
+    "pack": "webpack -w --progress --color",
+    "start": "node server.js"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.24.1",
+    "babel-loader": "^7.0.0",
+    "babel-preset-env": "^1.5.1",
+    "babel-preset-react": "^6.24.1",
+    "css-loader": "^0.28.4",
+    "style-loader": "^0.18.2",
+    "webpack": "^2.6.1"
+  },
+  "dependencies": {
+    "body-parser": "^1.17.2",
+    "cookie-parser": "^1.4.3",
+    "express": "^4.15.4",
+    "http": "0.0.0",
+    "material-ui": "^0.19.0",
+    "react": "^15.5.4",
+    "react-dom": "^15.5.4",
+    "react-quill": "^1.0.0",
+    "react-router-dom": "^4.1.2",
+    "textpatcher": "^1.3.0",
+    "ws": "^3.1.0"
+  }
+}

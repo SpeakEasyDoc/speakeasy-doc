@@ -1,0 +1,17 @@
+#react-root {
+  display: flex;
+  flex-direction: column
+}
+
+#horiz-elems {
+  display: flex;
+  flex-direction: row
+}
+
+#left-nav {
+  background-color: purple
+}
+
+#right-nav {
+
+}
