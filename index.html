@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Justino Client Signal Test</title>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-beta1/jquery.min.js"></script>
+
+
+    <link rel="stylesheet" type="text/css" href="styles.css" />
+</head>
+
+<body>
+    <div class="button-group">
+        Your username: <input type="text" id="my-username" placeholder="snowden" required> 
+        <button type="button" id="register-keys">Register</button> <br>
+
+        Name of person you would like to connect with: <input id="recipient-id" type="text" name="recipientId" placeholder="greenwald" required><button type="button" id="get-recipient-keys">Submit</button> <br>
+
+        <button type="button" id="create-session">Create Session</button> <br>
+    </div>
+
+    <div class="message-container">
+        <form>
+            Message:<br>
+            <input id="my-message" type="text" name="message">
+        </form>
+        <button type="button" id="send-message">Send</button>
+    </div>
+
+    <!-- START: Signal Libraries & Helper JS files --> 
+        
+        <!-- TEST JS functions --> 
+        
+        
+        <!-- As required: --> 
+        <script src="./dist/libsignal-protocol.js" type="text/javascript"></script> 
+
+        <!-- curve25519 files --> 
+        <script type="text/javascript" src="./build/curve25519_concat.js"></script>
+        <script type="text/javascript" src="./build/curve25519_compiled.js"></script>
+        <script type="text/javascript" src="./src/curve25519_worker_manager.js"></script>
+        <script type="text/javascript" src="./build/components_concat.js"></script>
+
+        <!-- Registration & Session Creation: Curve, Crypto and Session JS files --> 
+        <script type="text/javascript" src="./src/Curve.js" data-cover></script>
+        <script type="text/javascript" src="./src/crypto.js" data-cover></script>
+        <script type="text/javascript" src="./src/helpers.js" data-cover></script>
+        <script type="text/javascript" src="./src/KeyHelper.js" data-cover></script>
+        <script type="text/javascript" src="./src/SignalProtocolAddress.js" data-cover></script>
+        <script type="text/javascript" src="./src/SessionBuilder.js" data-cover></script>
+        <script type="text/javascript" src="./src/SessionCipher.js" data-cover></script>
+        <script type="text/javascript" src="./build/protobufs_concat.js" data-cover></script>
+        <script type="text/javascript" src="./src/SessionRecord.js" data-cover></script>
+        <script type="text/javascript" src="./src/SessionLock.js" data-cover></script>
+        <script type="text/javascript" src="./src/NumericFingerprint.js" data-cover></script>
+
+        <!-- To Store the keys --> 
+        <script type="text/javascript" src="./InMemorySignalProtocolStore.js"></script>
+
+        <!-- Client Signal: --> 
+        <script type="text/javascript" src="./client.js"></script>
+
+    <!-- END:   Signal Libraries & Helper JS files  --> 
+
+
+</body>
+
+</html>
