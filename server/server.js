@@ -48,6 +48,10 @@ app.get('/session', (req, res, next) => {
 
 });
 
+app.post('/message', (req, res, next) => {console.log('req.body is', req.body); next();}, (req, res, next) => {
+  UserController.saveMessage(req, res);
+});
+
 // Send shared secret (message)
 //app.post('/session', )
 app.listen(3030, () => {

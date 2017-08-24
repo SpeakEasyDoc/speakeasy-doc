@@ -20,6 +20,9 @@ const userSchema = new Schema({
         deviceId: {
             type: Number,
             default: 0
+        },
+        messagesArray: {
+          type: Array
         }
     },
     key_bundle: {
