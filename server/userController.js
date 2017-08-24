@@ -44,7 +44,7 @@ const saveIdentity = (req, res, next) => {
 }
 
 // Serve the Receiver's Key Bundle to Sender if receiver is found
-const findIdentity = (req, res) => {
+const findIdentity = (req, res, next) => {
 
     // Extract Receiver's registration ID from req.params 
     const receiverRecipientId = req.params.recipientId;
@@ -56,7 +56,7 @@ const findIdentity = (req, res) => {
             console.log("Inside of (err,doc)");
             res.send(err);
         } else {
-            console.log("Receiver's key bundle is: ", doc);
+            console.log("\n\n\n\n\nReceiver's key bundle is: ", doc);
             res.status(200).send(doc);
             // delete ephemeral keys here 
         }

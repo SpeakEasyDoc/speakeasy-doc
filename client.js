@@ -11,6 +11,7 @@ $(() => {
     $('#get-recipient-keys').on('click', requestReceiversBundle);
     $('#create-session').on('click', startSession);
     $('#send-message').on('click', encryptMessage);
+    $('#decrypt-message').on('click', decryptMessage);
 });
 
 //**************REGISTER KEYS*****************/        
@@ -219,14 +220,31 @@ const encryptMessage = (plaintext) => {
 
 //Decrypting Message:
 const decryptMessage = (ciphertext) => {
-  if (!recipintObj.user_info.messagesArray.length) {
+  
+  $.ajax({
+    type: 'GET',
+    url: 'http://localhost:3030/get-message/' + $('#my-username').val(),
+    dataType: 'json',
+    error: () => {
+        console.log('Could not get message from server!');
+    },
+    success: (data) => {
+      console.log(data);
+      ciphertext = util.toArrayBuffer(data.user_info.messagesArray[data.user_info.messagesArray.length - 1]); // retrieve last message only 
+      console.log('\n\nciphertext buffer is', ciphertext);
+    }
+  });
+
+  if (!recipientObj.user_info.messagesArray.length) {
       //if it's the first time I am decrypting, then 
-      ourSessionCipher.decryptPreKeyWhisperMessage(ciphertext.body, 'binary').then(function (plaintext) {
-          return util.toString(plaintext);
+      ourSessionCipher.decryptPreKeyWhisperMessage(ciphertext, 'binary').then(function (plaintext) {
+          $('#incoming-message-container').append('\n' + util.toString(plaintext));  
+          // return util.toString(plaintext);
       });
   } else {
-      ourSessionCipher.decryptWhisperMessage(ciphertext.body, 'binary').then(function (plaintext) {
-          return util.toString(plaintext);
+      ourSessionCipher.decryptWhisperMessage(ciphertext, 'binary').then(function (plaintext) {
+          $('#incoming-message-container').append('\n' + util.toString(plaintext));  
+          // return util.toString(plaintext);
       });
   }
 }
