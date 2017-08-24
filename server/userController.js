@@ -71,37 +71,19 @@ const findIdentity = (req, res) => {
 const saveMessage = (req, res, next) => {
   const sentMessage = req.body;
   console.log('\n\n\n\nIn saveMessage (server): ', req.body.recipientId);
-  
-  User.find({ user_info: { recipientId: req.body.recipientId } }, (err, doc) => {
-    if (err) {
-      console.log('Error retrieving doc');
-    } else {
-      console.log('The retrieved doc is: ', doc);
-      res.status(200).send(doc);
-    }
-  })
 
+  User.findOneAndUpdate(
+    { "user_info.recipientId": req.body.recipientId }
+    , { $push: { "user_info.messagesArray": req.body.message } }
+    , (err, doc) => {
+      if (err) {
+          console.log('Error saving message');
+      } else {
+          console.log('Our recipient\'s message array is: ', doc.user_info.messagesArray);
+          res.status(200).send(doc);
+      }
+  });
 
-  // User.findOneAndUpdate(
-  //   { 'user_info': { 'recipientId': req.body.recipientId } }
-  //   , { 'user_info': { 'messagesArray': [sentMessage] } }
-  //   , (err, doc) => {
-  //     if (err) {
-  //         console.log('Error saving message');
-  //     } else {
-  //         console.log('Our message is: ', doc);
-  //         res.status(200).send(doc);
-  //     }
-  // });
-
-  // User.save(sentMessage, {"user_info.messagesArray": sentMessage}, (err, doc) => {
-  //     if (err) {
-  //         console.log('Error saving message');
-  //     } else {
-  //         console.log('Our message is: ', doc);
-  //         res.status(200).send(doc);
-  //     }
-  // });
 }
 
 module.exports = { saveIdentity, findIdentity, saveMessage };
