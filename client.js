@@ -2,12 +2,15 @@
 KeyHelper = libsignal.KeyHelper;
 const store = new SignalProtocolStore();
 let recipientObj = {};
+let ourSessionPromise;
+let ourSessionCipher;
 
 // Load On Ready 
 $(() => {
     $('#register-keys').on('click', registerWithServer);
     $('#get-recipient-keys').on('click', requestReceiversBundle);
     $('#create-session').on('click', startSession);
+    $('#send-message').on('click', encryptMessage);
 });
 
 //**************REGISTER KEYS*****************/        
@@ -149,38 +152,115 @@ function requestReceiversBundle() {
     });
 }
 
-let recipientAddress = {}; 
+let recipientAddress;
 
-startSession = () => {
-    console.log('Our recipientOb is ', recipientObj);
 
-    //  create receiver address 
-    recipientAddress = new libsignal.SignalProtocolAddress(recipientObj.user_info.recipientId, recipientObj.user_info.deviceId);
 
-    console.log("Recipient address is: ", recipientAddress);
+const startSession = () => {
+  //create receiver address
+  recipientAddress = new libsignal.SignalProtocolAddress(recipientObj.user_info.recipientId, recipientObj.user_info.deviceId);
 
-    // create a session builder for a receiver's ID + device ID - (Receiver's address )
-    let sessionBuilder = new libsignal.SessionBuilder(store, recipientAddress);
+  console.log("Recipient Address is: ", recipientAddress);
 
-    console.log("Befeore authentication. Our key bundle is: ", recipientObj.key_bundle);
-    // process pre keys (verification & authenticaiton)
+  //create a session builder for receiver's Id + Device Id (Recipient address)
+  let sessionBuilder = new libsignal.SessionBuilder(store, recipientAddress);
 
-    const sessionPromise = sessionBuilder.processPreKey(recipientObj.key_bundle);
-
-    // create session record 
-    //const sessionRecord = libsignal.SessionRecord(); 
-
-    sessionPromise.then(function onsuccess() {
-
-        console.log("our session in the store is: ", store.loadSession()); 
-
-        console.log("Time to send message");
-        var plaintext = "Hello world";
-        var ourSessionCipher = new SessionCipher(store, recipientAddress);
-        console.log("Our Session Record is: ", ourSessionCipher.getRecord(recipientAddress)); 
-        ourSessionCipher.encrypt(plaintext).then(function (ciphertext) {
-            // ciphertext -> { type: <Number>, body: <string> }
-            handle(ciphertext.type, ciphertext.body); // HERE NOW 
-        });
-    });
+  console.log("Before authentication. Recipient key bundle is: ", recipientObj.key_bundle);
+  console.log('ourSEssionPromise inside startSession before', ourSessionPromise)
+  
+  ourSessionPromise = sessionBuilder.processPreKey(recipientObj.key_bundle);
+  console.log('ourSEssionPromise inside startSession', ourSessionPromise)
+  // console.log('recipient key bundle after processPreKey: ', recipientObj.key_bundle);
+  // console.log('sessionBuilder.processPreKey: ', sessionBuilder.processPreKey(recipientObj.key_bundle));
+  // returns session promise
+  // console.log('this is our session promise: ', ourSessionPromise);
+  // return ourSessionPromise;
 }
+
+const encryptMessage = (plaintext) => {
+  let ourPlainText = $('#my-message').val();
+  console.log('We typed: ', ourPlainText);
+  console.log('ourSessionPromise?', ourSessionPromise)
+  ourSessionPromise.then(function onsuccess() {
+      console.log("Our session in the store is: ", store.loadSession());
+      console.log("Time to send message");
+
+      //if session cipher exists
+      if (!ourSessionCipher) {
+          ourSessionCipher = new SessionCipher(store, recipientAddress);
+      }
+      ourSessionCipher.encrypt(ourPlainText).then(function (ciphertext) {
+          console.log('Our ciphertext.body is: ', ciphertext.body);
+          const messageToSend = {
+              recipientId: recipientObj.user_info.recipientId,
+              message: util.toString(ciphertext.body)
+          };
+          console.log('recipient ID', messageToSend.recipientId)
+          console.log('Message to send: ', messageToSend);
+
+          $.ajax({
+              type: 'POST',
+              url: 'http://localhost:3030/message/',
+              data: JSON.stringify(messageToSend),
+              contentType: 'application/json',
+              error: () => {
+                  console.log('Could not encrypt plaintext!');
+              },
+              success: (data) => {
+                  //push into messagesArray to let user know if this is the first time decrypting a message
+                  console.log('\n\n\n\nData sent back from the server and about to be save in messages array is:\n\n', data)
+                  recipientObj.user_info.messagesArray.push(data);
+                  console.log('Message sent + encrypted in: ', recipientObj.user_info.messagesArray);
+              }
+          });
+      });
+  });
+}
+
+//Decrypting Message:
+const decryptMessage = (ciphertext) => {
+  if (!recipintObj.user_info.messagesArray.length) {
+      //if it's the first time I am decrypting, then 
+      ourSessionCipher.decryptPreKeyWhisperMessage(ciphertext.body, 'binary').then(function (plaintext) {
+          return util.toString(plaintext);
+      });
+  } else {
+      ourSessionCipher.decryptWhisperMessage(ciphertext.body, 'binary').then(function (plaintext) {
+          return util.toString(plaintext);
+      });
+  }
+}
+
+// startSession = () => {
+//     console.log('Our recipientOb is ', recipientObj);
+
+//     //  create receiver address 
+//     recipientAddress = new libsignal.SignalProtocolAddress(recipientObj.user_info.recipientId, recipientObj.user_info.deviceId);
+
+//     console.log("Recipient address is: ", recipientAddress);
+
+//     // create a session builder for a receiver's ID + device ID - (Receiver's address )
+//     let sessionBuilder = new libsignal.SessionBuilder(store, recipientAddress);
+
+//     console.log("Befeore authentication. Our key bundle is: ", recipientObj.key_bundle);
+//     // process pre keys (verification & authenticaiton)
+
+//     const sessionPromise = sessionBuilder.processPreKey(recipientObj.key_bundle);
+
+//     // create session record 
+//     //const sessionRecord = libsignal.SessionRecord(); 
+
+//     sessionPromise.then(function onsuccess() {
+
+//         console.log("our session in the store is: ", store.loadSession()); 
+
+//         console.log("Time to send message");
+//         var plaintext = "Hello world";
+//         var ourSessionCipher = new SessionCipher(store, recipientAddress);
+//         console.log("Our Session Record is: ", ourSessionCipher.getRecord(recipientAddress)); 
+//         ourSessionCipher.encrypt(plaintext).then(function (ciphertext) {
+//             // ciphertext -> { type: <Number>, body: <string> }
+//             handle(ciphertext.type, ciphertext.body); // HERE NOW 
+//         });
+//     });
+// }
