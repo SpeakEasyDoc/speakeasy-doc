@@ -30,11 +30,10 @@ app.get('/', (req, res) => {
 });
 
 // Client register their identity and keyBundle with the server
-app.post('/register', (req, res) => {
+app.post('/register', 
     // Receive PreKey Bundle    
     // call UserController.saveIdentity passing req and res
-    UserController.saveIdentity(req, res);
-});
+    UserController.saveIdentity);
 
 // Sender requests receiver's preKey Bundle 
 app.get('/connect/:recipientId', (req, res, next) => {
@@ -48,9 +47,9 @@ app.get('/session', (req, res, next) => {
 
 });
 
-app.post('/message', (req, res, next) => {console.log('req.body is', req.body); next();}, (req, res, next) => {
-  UserController.saveMessage(req, res);
-});
+app.post('/message', UserController.saveMessage);
+
+app.get('/get-message/:recipientId', UserController.findIdentity);
 
 // Send shared secret (message)
 //app.post('/session', )
