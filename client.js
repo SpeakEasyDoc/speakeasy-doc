@@ -229,24 +229,27 @@ const decryptMessage = (ciphertext) => {
         console.log('Could not get message from server!');
     },
     success: (data) => {
-      console.log(data);
-      ciphertext = util.toArrayBuffer(data.user_info.messagesArray[data.user_info.messagesArray.length - 1]); // retrieve last message only 
-      console.log('\n\nciphertext buffer is', ciphertext);
-    }
-  });
+        console.log('data we got back from GET request', data);
+        ciphertext = util.toArrayBuffer(data.user_info.messagesArray[data.user_info.messagesArray.length - 1]); // retrieve last message only 
+        console.log('\n\nciphertext buffer is', ciphertext);
+        if (recipientObj.user_info.messagesArray.length === 1) {
+            //if it's the first time I am decrypting, then 
+            console.log('inside first if')
+            ourSessionCipher.decryptPreKeyWhisperMessage(ciphertext, 'binary').then(function (plaintext) {
+                console.log('insideSessionCipher')
+                $('#incoming-message-container').append('\n' + util.toString(plaintext));  
+                // return util.toString(plaintext);
+            });
+        } else {
+            console.log('inside else statement')
+            ourSessionCipher.decryptWhisperMessage(ciphertext, 'binary').then(function (plaintext) {
+                $('#incoming-message-container').append('\n' + util.toString(plaintext));  
+                // return util.toString(plaintext);
+            });
+        }
+      }
+    });
 
-  if (!recipientObj.user_info.messagesArray.length) {
-      //if it's the first time I am decrypting, then 
-      ourSessionCipher.decryptPreKeyWhisperMessage(ciphertext, 'binary').then(function (plaintext) {
-          $('#incoming-message-container').append('\n' + util.toString(plaintext));  
-          // return util.toString(plaintext);
-      });
-  } else {
-      ourSessionCipher.decryptWhisperMessage(ciphertext, 'binary').then(function (plaintext) {
-          $('#incoming-message-container').append('\n' + util.toString(plaintext));  
-          // return util.toString(plaintext);
-      });
-  }
 }
 
 // startSession = () => {

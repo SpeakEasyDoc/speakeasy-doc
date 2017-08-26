@@ -127,6 +127,8 @@ SessionCipher.prototype = {
     }.bind(this));
   },
   decryptWhisperMessage: function(buffer, encoding) {
+      console.log('\n\nbuffer is', buffer);
+      console.log('\n\nencoding is', encoding);
       buffer = dcodeIO.ByteBuffer.wrap(buffer, encoding).toArrayBuffer();
       return Internal.SessionLock.queueJobForNumber(this.remoteAddress.toString(), function() {
         var address = this.remoteAddress.toString();
@@ -139,6 +141,7 @@ SessionCipher.prototype = {
                 return this.getRecord(address).then(function(record) {
                     record.updateSessionState(result.session);
                     return this.storage.storeSession(address, record.serialize()).then(function() {
+                        console.log('ended decryptWhisperMessage')
                         return result.plaintext;
                     });
                 }.bind(this));
@@ -147,7 +150,9 @@ SessionCipher.prototype = {
       }.bind(this));
   },
   decryptPreKeyWhisperMessage: function(buffer, encoding) {
-      buffer = dcodeIO.ByteBuffer.wrap(buffer, encoding);
+    console.log('\n\nbuffer is', buffer);
+    console.log('\n\nencoding is', encoding);  
+    buffer = dcodeIO.ByteBuffer.wrap(buffer, encoding);
       var version = buffer.readUint8();
       if ((version & 0xF) > 3 || (version >> 4) < 3) {  // min version > 3 or max version < 3
           throw new Error("Incompatible version number on PreKeyWhisperMessage");
@@ -177,6 +182,7 @@ SessionCipher.prototype = {
                               return this.storage.removePreKey(preKeyId);
                           }
                       }.bind(this)).then(function() {
+                          console.log('ended decryptPREKEYWhisperMessage')
                           return plaintext;
                       });
                   }.bind(this));
