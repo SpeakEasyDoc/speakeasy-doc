@@ -20,7 +20,7 @@ const generateIdentity = async (store) => {
     // Generate Registration ID 
     const regId = await KeyHelper.generateRegistrationId();
 
-    // Generate Identity Key Pair 
+    // Generate Identity Key Pair - long-term
     const identKeyPair = await KeyHelper.generateIdentityKeyPair();
 
     console.log("(C): 1) Reg id: ", regId);
@@ -51,8 +51,12 @@ function generateKeysBundle(store) {
             KeyHelper.generatePreKey(keyID), // fix  
             KeyHelper.generateSignedPreKey(identKeyPair, signedKeyID) // identKey, keyId
         ]).then((keys) => {
+            // (short-term or medium term??) prekey pair, contains: private and corresponding public key
             const preKey = keys[0];
             console.log("(C): 3) our PreKeyPair is: ", preKey);
+
+            // medium-term, contains: private and corresponding public key
+            // signed with long-term private identity key
             const signedPreKey = keys[1];
             console.log("(C): 4) our signedPreKeyPair is: ", preKey);
             console.log('(C): 5) keys is', keys)
