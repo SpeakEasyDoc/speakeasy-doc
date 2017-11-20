@@ -28,17 +28,14 @@ const saveIdentity = (req, res, next) => {
                 "publicKey": keyBundle.signedPreKey.publicKey, // "dfasgSGAWGASGWRGVASGSA",// //
                 "signature": keyBundle.signedPreKey.signature //"DGASGASGDAGSfasvvdrse5vvys6"
             },
-            "preKey": {
-                "keyId": keyBundle.preKey.keyId,//333
-                "publicKey": keyBundle.preKey.publicKey,//"rtyc45vycw4vyc4s5yscg54"
-            }
+            "preKeys": keyBundle.preKeys //an array of public prekeys and their keyId's
         }
     };
 
     console.log('(S): Our identityObj before saving: ', identity);
 
     User.create(identity, (err, doc) => {
-        if (err) res.status(500).send("Could not register. Try again."); // HERE's THE ERROR FUCK
+        if (err) res.status(500).send("Could not register. Try again.");
         else res.status(200).send(doc)
     });
 }
@@ -51,14 +48,48 @@ const findIdentity = (req, res, next) => {
     console.log("our receiver reg id is: ", receiverRecipientId);
     console.log("Type of receiverRegId", typeof receiverRecipientId);
 
-    User.findOne({"user_info.recipientId": receiverRecipientId}, (err, doc) => {
-        if (err) {
-            console.log("Inside of (err,doc)");
-            res.send(err);
-        } else {
-            console.log("\n\n\n\n\nReceiver's key bundle is: ", doc);
-            res.status(200).send(doc);
-            // delete ephemeral keys here 
+    // find the receiver
+    // delete one of ephemeral prekeys here, as it is issued to Sender/Alice
+    User.findOneAndUpdate(
+        {"user_info.recipientId": receiverRecipientId},
+        // remove first element of the preKeys array
+        {$pop: {"key_bundle.preKeys": -1}},
+        // userData is passed to the callback BEFORE removing first preKeys array element
+        {new: false},
+        (err, userData) => {
+            if (err) {
+                console.log("Inside of findIdentity error:");
+                res.send(err);
+            } else {
+                console.log("\n\n\n\n\nReceiver's database entry on server is:", userData);
+
+                // only include one of ephemeral prekeys here, the first one in the array, not the whole set
+                const preKeyToGiveAlice = userData.key_bundle.preKeys[0];
+                let userDataForAlice
+                if (!preKeyToGiveAlice) {
+                    // if no more onetime preKeys are left, send key bundle without onetime prekeys
+                    userDataForAlice = {
+                        user_info: userData.user_info,
+                        key_bundle: { 
+                            registrationId: userData.key_bundle.registrationId,
+                            identityKey: userData.key_bundle.identityKey,
+                            signedPreKey: userData.key_bundle.signedPreKey
+                        }
+                    }
+                } else {
+                    // if there's still at least one ephemeral preKey left, include ONE prekey in the key bundle
+                    userDataForAlice = {
+                        user_info: userData.user_info,
+                        key_bundle: { 
+                            registrationId: userData.key_bundle.registrationId,
+                            identityKey: userData.key_bundle.identityKey,
+                            signedPreKey: userData.key_bundle.signedPreKey,
+                            preKey: preKeyToGiveAlice
+                        }
+                    }
+                }
+
+                res.status(200).send(userDataForAlice);
         }
     });
 }

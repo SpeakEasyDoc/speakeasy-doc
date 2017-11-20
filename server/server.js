@@ -21,19 +21,20 @@ app.use(function (req, res, next) {
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-//app.use(express.static(path.join(__dirname, './')));
+
+// currently serving everything
+// TODO: make sure only files necessary to be served/public are included here
+app.use(express.static(path.join(__dirname, './../')));
 
 
 app.get('/', (req, res) => {
-    // res.sendFile(path.resolve('index.html')); 
-    res.status(200).send("Welcome to SpeakEasy.io");
+    res.sendFile(path.resolve('index.html')); 
+    // res.status(200).send("Welcome to SpeakEasy.io");
 });
 
-// Client register their identity and keyBundle with the server
-app.post('/register', 
-    // Receive PreKey Bundle    
-    // call UserController.saveIdentity passing req and res
-    UserController.saveIdentity);
+// Client registers their identity and keyBundle with the server
+// Username and keyBundle are passed as data in the post request
+app.post('/register', UserController.saveIdentity);
 
 // Sender requests receiver's preKey Bundle 
 app.get('/connect/:recipientId', (req, res, next) => {

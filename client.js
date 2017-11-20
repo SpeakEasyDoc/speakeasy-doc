@@ -10,6 +10,9 @@ $(() => {
     $('#register-keys').on('click', registerWithServer);
     $('#get-recipient-keys').on('click', requestReceiversBundle);
     $('#create-session').on('click', startSession);
+
+    // when sending a message, we also need to send some keys with it
+    // TODO: decouple encrypting and sending into two separate functions    
     $('#send-message').on('click', encryptMessage);
     $('#decrypt-message').on('click', decryptMessage);
 });
@@ -20,13 +23,13 @@ const generateIdentity = async (store) => {
     // Generate Registration ID 
     const regId = await KeyHelper.generateRegistrationId();
 
-    // Generate Identity Key Pair 
+    // Generate Identity Key Pair - long-term
     const identKeyPair = await KeyHelper.generateIdentityKeyPair();
 
     console.log("(C): 1) Reg id: ", regId);
     console.log("(C): 2) Ident key: ", identKeyPair);
 
-    // Store Registration ID and Key Pair in the store
+    // Store Registration ID and Key Pair in the user's local store
     store.put('registrationId', regId);
     store.put('identityKey', identKeyPair);
 }
@@ -35,47 +38,67 @@ const generateIdentity = async (store) => {
 function generateKeysBundle(store) {
     // check our store for Identity Key Pair and registration ID
     // return them  as promises 
-    const keyID = Math.floor((Math.random() * 4000) + 1); // Our made up key ID 
-    const signedKeyID = Math.floor((Math.random() * 4000) + 1)
+
+    // generate 5 one-time prekeys to be sent to the server
+    // - these are one-time ephemeral
+    // these generate as promises, need to be resolved before we can use them
+    const onetimePrekeys = [];
+    for (let keyID = 0; keyID < 5; keyID++) {
+        onetimePrekeys.push(KeyHelper.generatePreKey(keyID));
+    }
+    
+    const signedKeyID = Math.floor((Math.random() * 4000) + 1);
 
     return Promise.all([
         store.getLocalRegistrationId(),
         store.getIdentityKeyPair()
     ]).then((result) => {
         // store Identity Key Pair and Registration ID in temp variables
-        var regId = result[0];
-        var identKeyPair = result[1];
+        const regId = result[0];
+        const identKeyPair = result[1];
 
-        // generatePreKey and signedPreKeys 
         return Promise.all([
-            KeyHelper.generatePreKey(keyID), // fix  
-            KeyHelper.generateSignedPreKey(identKeyPair, signedKeyID) // identKey, keyId
+            // generate one signed prekey - this one is medium term
+            KeyHelper.generateSignedPreKey(identKeyPair, signedKeyID),
+            ...onetimePrekeys
         ]).then((keys) => {
-            const preKey = keys[0];
-            console.log("(C): 3) our PreKeyPair is: ", preKey);
-            const signedPreKey = keys[1];
-            console.log("(C): 4) our signedPreKeyPair is: ", preKey);
+            // signed prekey pair and signature
+            // medium-term, contains: signature and private and corresponding public keys
+            // signed with long-term private identity key
+            const signedPreKey = keys[0];
+            console.log("(C): 3) our signedPreKeyPair is: ", signedPreKey);
+            
+            // one-time ephemeral prekey pair, contains: private and corresponding public keys
+            const preKeys = keys.slice(1);
+            // only send public keys (and id) to the server
+            const preKeysPublicOnly = preKeys.map((preKey) => {
+                return {
+                    keyId: preKey.keyId,
+                    publicKey: util.toString(preKey.keyPair.pubKey)
+                }
+            })
+            console.log("(C): 4) our multiple one-time ephemeral keys are: ", preKeys);
+            
             console.log('(C): 5) keys is', keys)
-
+            
             // Store keys 
-            store.storePreKey(keyID, preKey.keyPair);
+            preKeys.forEach((preKey) => store.storePreKey(preKey.keyId, preKey.keyPair));
             store.storeSignedPreKey(signedKeyID, signedPreKey.keyPair);
 
-            // Bundle all the keys 
             console.log("(C): 6) Type of identity key pair ", typeof identKeyPair);
-
+            
+            // Bundle all the keys
+            // key bundle to be used in initial registration with the server
             return {
                 // Our Info: 
                 user_info: {
                     recipientId: $('#my-username').val()
-                }, // Our Key Bundle: 
+                }, 
+                // Our Key Bundle: 
                 key_bundle: {
                     registrationId: regId,
-                    identityKey: util.toString(identKeyPair.pubKey),  //util.toString(identKeyPair.pubKey),
-                    preKey: {
-                        keyId: keyID,
-                        publicKey: util.toString(preKey.keyPair.pubKey),
-                    },
+                    identityKey: util.toString(identKeyPair.pubKey),
+                    preKeys: preKeysPublicOnly,
                     signedPreKey: {
                         keyId: signedKeyID,
                         publicKey: util.toString(signedPreKey.keyPair.pubKey),
@@ -186,7 +209,7 @@ const encryptMessage = (plaintext) => {
       console.log("Our session in the store is: ", store.loadSession());
       console.log("Time to send message");
 
-      //if session cipher exists
+      // make sure session cipher exists
       if (!ourSessionCipher) {
           ourSessionCipher = new SessionCipher(store, recipientAddress);
       }
@@ -229,24 +252,27 @@ const decryptMessage = (ciphertext) => {
         console.log('Could not get message from server!');
     },
     success: (data) => {
-      console.log(data);
-      ciphertext = util.toArrayBuffer(data.user_info.messagesArray[data.user_info.messagesArray.length - 1]); // retrieve last message only 
-      console.log('\n\nciphertext buffer is', ciphertext);
-    }
-  });
+        console.log('data we got back from GET request', data);
+        ciphertext = util.toArrayBuffer(data.user_info.messagesArray[data.user_info.messagesArray.length - 1]); // retrieve last message only 
+        console.log('\n\nciphertext buffer is', ciphertext);
+        if (recipientObj.user_info.messagesArray.length === 1) {
+            //if it's the first time I am decrypting, then 
+            console.log('inside first if')
+            ourSessionCipher.decryptPreKeyWhisperMessage(ciphertext, 'binary').then(function (plaintext) {
+                console.log('insideSessionCipher')
+                $('#incoming-message-container').append('\n' + util.toString(plaintext));  
+                // return util.toString(plaintext);
+            });
+        } else {
+            console.log('inside else statement')
+            ourSessionCipher.decryptWhisperMessage(ciphertext, 'binary').then(function (plaintext) {
+                $('#incoming-message-container').append('\n' + util.toString(plaintext));  
+                // return util.toString(plaintext);
+            });
+        }
+      }
+    });
 
-  if (!recipientObj.user_info.messagesArray.length) {
-      //if it's the first time I am decrypting, then 
-      ourSessionCipher.decryptPreKeyWhisperMessage(ciphertext, 'binary').then(function (plaintext) {
-          $('#incoming-message-container').append('\n' + util.toString(plaintext));  
-          // return util.toString(plaintext);
-      });
-  } else {
-      ourSessionCipher.decryptWhisperMessage(ciphertext, 'binary').then(function (plaintext) {
-          $('#incoming-message-container').append('\n' + util.toString(plaintext));  
-          // return util.toString(plaintext);
-      });
-  }
 }
 
 // startSession = () => {
