@@ -28,10 +28,7 @@ const saveIdentity = (req, res, next) => {
                 "publicKey": keyBundle.signedPreKey.publicKey, // "dfasgSGAWGASGWRGVASGSA",// //
                 "signature": keyBundle.signedPreKey.signature //"DGASGASGDAGSfasvvdrse5vvys6"
             },
-            "preKey": {
-                "keyId": keyBundle.preKey.keyId,//333
-                "publicKey": keyBundle.preKey.publicKey,//"rtyc45vycw4vyc4s5yscg54"
-            }
+            "preKeys": keyBundle.preKeys //an array of public prekeys and their keyId's
         }
     };
 

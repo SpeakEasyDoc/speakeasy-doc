@@ -10,7 +10,7 @@ $(() => {
     $('#register-keys').on('click', registerWithServer);
     $('#get-recipient-keys').on('click', requestReceiversBundle);
     $('#create-session').on('click', startSession);
-    
+
     // when sending a message, we also need to send some keys with it
     // TODO: decouple encrypting and sending into two separate functions    
     $('#send-message').on('click', encryptMessage);
@@ -38,8 +38,16 @@ const generateIdentity = async (store) => {
 function generateKeysBundle(store) {
     // check our store for Identity Key Pair and registration ID
     // return them  as promises 
-    const keyID = Math.floor((Math.random() * 4000) + 1); // Our made up key ID 
-    const signedKeyID = Math.floor((Math.random() * 4000) + 1)
+
+    // generate 5 one-time prekeys to be sent to the server
+    // - these are one-time ephemeral
+    // these generate as promises, need to be resolved before we can use them
+    const onetimePrekeys = [];
+    for (let keyID = 0; keyID < 5; keyID++) {
+        onetimePrekeys.push(KeyHelper.generatePreKey(keyID));
+    }
+    
+    const signedKeyID = Math.floor((Math.random() * 4000) + 1);
 
     return Promise.all([
         store.getLocalRegistrationId(),
@@ -49,42 +57,48 @@ function generateKeysBundle(store) {
         const regId = result[0];
         const identKeyPair = result[1];
 
-        // generate multiple preKeys - these are one-time ephemeral
-        // generate one signed prekey - this one is medium term
         return Promise.all([
-            KeyHelper.generatePreKey(keyID), // fix  
-            KeyHelper.generateSignedPreKey(identKeyPair, signedKeyID) // identKey, keyId
+            // generate one signed prekey - this one is medium term
+            KeyHelper.generateSignedPreKey(identKeyPair, signedKeyID),
+            ...onetimePrekeys
         ]).then((keys) => {
-            // one-time ephemeral prekey pair, contains: private and corresponding public key
-            const preKey = keys[0];
-            console.log("(C): 3) our PreKeyPair is: ", preKey);
-
-            // medium-term, contains: private and corresponding public key
+            // signed prekey pair and signature
+            // medium-term, contains: signature and private and corresponding public keys
             // signed with long-term private identity key
-            const signedPreKey = keys[1];
-            console.log("(C): 4) our signedPreKeyPair is: ", preKey);
+            const signedPreKey = keys[0];
+            console.log("(C): 3) our signedPreKeyPair is: ", signedPreKey);
+            
+            // one-time ephemeral prekey pair, contains: private and corresponding public keys
+            const preKeys = keys.slice(1);
+            // only send public keys (and id) to the server
+            const preKeysPublicOnly = preKeys.map((preKey) => {
+                return {
+                    keyId: preKey.keyId,
+                    publicKey: util.toString(preKey.keyPair.pubKey)
+                }
+            })
+            console.log("(C): 4) our multiple one-time ephemeral keys are: ", preKeys);
+            
             console.log('(C): 5) keys is', keys)
-
+            
             // Store keys 
-            store.storePreKey(keyID, preKey.keyPair);
+            preKeys.forEach((preKey) => store.storePreKey(preKey.keyId, preKey.keyPair));
             store.storeSignedPreKey(signedKeyID, signedPreKey.keyPair);
 
-            // Bundle all the keys 
             console.log("(C): 6) Type of identity key pair ", typeof identKeyPair);
-
+            
+            // Bundle all the keys
+            // key bundle to be used in initial registration with the server
             return {
                 // Our Info: 
                 user_info: {
                     recipientId: $('#my-username').val()
-                }, // Our Key Bundle: 
+                }, 
+                // Our Key Bundle: 
                 key_bundle: {
                     registrationId: regId,
-                    identityKey: util.toString(identKeyPair.pubKey),  //util.toString(identKeyPair.pubKey),
-                    // TODO: have to send multiple one-time prekeys
-                    preKey: {
-                        keyId: keyID,
-                        publicKey: util.toString(preKey.keyPair.pubKey),
-                    },
+                    identityKey: util.toString(identKeyPair.pubKey),
+                    preKeys: preKeysPublicOnly,
                     signedPreKey: {
                         keyId: signedKeyID,
                         publicKey: util.toString(signedPreKey.keyPair.pubKey),

@@ -44,14 +44,15 @@ const userSchema = new Schema({
                 type: String
             }
         },
-        preKey: {
+        // preKeys is an Array of objects
+        preKeys: [{
             keyId: {
                 type: Number
             },
             publicKey: {
                 type: String
             }
-        }
+        }]
     }, 
     last_time_connected: { 
         last_time: {

@@ -32,11 +32,9 @@ app.get('/', (req, res) => {
     // res.status(200).send("Welcome to SpeakEasy.io");
 });
 
-// Client register their identity and keyBundle with the server
-app.post('/register', 
-    // Receive PreKey Bundle    
-    // call UserController.saveIdentity passing req and res
-    UserController.saveIdentity);
+// Client registers their identity and keyBundle with the server
+// Username and keyBundle are passed as data in the post request
+app.post('/register', UserController.saveIdentity);
 
 // Sender requests receiver's preKey Bundle 
 app.get('/connect/:recipientId', (req, res, next) => {
