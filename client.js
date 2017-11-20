@@ -10,6 +10,9 @@ $(() => {
     $('#register-keys').on('click', registerWithServer);
     $('#get-recipient-keys').on('click', requestReceiversBundle);
     $('#create-session').on('click', startSession);
+    
+    // when sending a message, we also need to send some keys with it
+    // TODO: decouple encrypting and sending into two separate functions    
     $('#send-message').on('click', encryptMessage);
     $('#decrypt-message').on('click', decryptMessage);
 });
@@ -26,7 +29,7 @@ const generateIdentity = async (store) => {
     console.log("(C): 1) Reg id: ", regId);
     console.log("(C): 2) Ident key: ", identKeyPair);
 
-    // Store Registration ID and Key Pair in the store
+    // Store Registration ID and Key Pair in the user's local store
     store.put('registrationId', regId);
     store.put('identityKey', identKeyPair);
 }
@@ -43,15 +46,16 @@ function generateKeysBundle(store) {
         store.getIdentityKeyPair()
     ]).then((result) => {
         // store Identity Key Pair and Registration ID in temp variables
-        var regId = result[0];
-        var identKeyPair = result[1];
+        const regId = result[0];
+        const identKeyPair = result[1];
 
-        // generatePreKey and signedPreKeys 
+        // generate multiple preKeys - these are one-time ephemeral
+        // generate one signed prekey - this one is medium term
         return Promise.all([
             KeyHelper.generatePreKey(keyID), // fix  
             KeyHelper.generateSignedPreKey(identKeyPair, signedKeyID) // identKey, keyId
         ]).then((keys) => {
-            // (short-term or medium term??) prekey pair, contains: private and corresponding public key
+            // one-time ephemeral prekey pair, contains: private and corresponding public key
             const preKey = keys[0];
             console.log("(C): 3) our PreKeyPair is: ", preKey);
 
@@ -76,6 +80,7 @@ function generateKeysBundle(store) {
                 key_bundle: {
                     registrationId: regId,
                     identityKey: util.toString(identKeyPair.pubKey),  //util.toString(identKeyPair.pubKey),
+                    // TODO: have to send multiple one-time prekeys
                     preKey: {
                         keyId: keyID,
                         publicKey: util.toString(preKey.keyPair.pubKey),
@@ -190,7 +195,7 @@ const encryptMessage = (plaintext) => {
       console.log("Our session in the store is: ", store.loadSession());
       console.log("Time to send message");
 
-      //if session cipher exists
+      // make sure session cipher exists
       if (!ourSessionCipher) {
           ourSessionCipher = new SessionCipher(store, recipientAddress);
       }

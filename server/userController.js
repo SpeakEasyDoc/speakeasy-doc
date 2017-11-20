@@ -38,7 +38,7 @@ const saveIdentity = (req, res, next) => {
     console.log('(S): Our identityObj before saving: ', identity);
 
     User.create(identity, (err, doc) => {
-        if (err) res.status(500).send("Could not register. Try again."); // HERE's THE ERROR FUCK
+        if (err) res.status(500).send("Could not register. Try again.");
         else res.status(200).send(doc)
     });
 }
@@ -58,7 +58,8 @@ const findIdentity = (req, res, next) => {
         } else {
             console.log("\n\n\n\n\nReceiver's key bundle is: ", doc);
             res.status(200).send(doc);
-            // delete ephemeral keys here 
+            // TODO: only send one of ephemeral prekeys here, not the whole set
+            // TODO: delete one of ephemeral prekeys here, as it is issued to Sender/requester
         }
     });
 }
