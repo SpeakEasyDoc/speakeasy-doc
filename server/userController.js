@@ -101,11 +101,12 @@ const findIdentity = (req, res, next) => {
 
 const saveMessage = (req, res, next) => {
   const sentMessage = req.body;
-  console.log('\n\n\n\nIn saveMessage (server): ', req.body.recipientId);
+  console.log('\n\n\n\nIn saveMessage (server): ', req.body);
 
   User.findOneAndUpdate(
     { "user_info.recipientId": req.body.recipientId }
-    , { $push: { "user_info.messagesArray": req.body.message } }
+    , { $push: { "user_info.messagesArray": req.body } }
+    , {new: true}
     , (err, doc) => {
       if (err) {
           console.log('Error saving message');
