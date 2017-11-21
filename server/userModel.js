@@ -22,9 +22,14 @@ const userSchema = new Schema({
             type: Number,
             default: 0
         },
-        messagesArray: {
-          type: Array
-        }
+        messagesArray: [{
+            message: {
+                type: String
+            },
+            recipientId: {
+                type: String
+            }
+        }]
     },
     key_bundle: {
         registrationId: {
