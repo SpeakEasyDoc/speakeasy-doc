@@ -127,7 +127,6 @@ Internal.SessionRecord = function() {
         },
         getOpenSession: function() {
             var sessions = this._sessions;
-            console.log('\n\ninside getOpenSession, sessionS plural is', sessions)
             
             if (sessions === undefined) {
                 return undefined;
@@ -208,7 +207,6 @@ Internal.SessionRecord = function() {
         },
         archiveCurrentState: function() {
             var open_session = this.getOpenSession();
-            console.log('\n\nopen_session inside archiverCurrentState', open_session)            
             if (open_session !== undefined) {
                 this.closeSession(open_session);
                 this.updateSessionState(open_session);

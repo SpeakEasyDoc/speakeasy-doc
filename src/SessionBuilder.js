@@ -90,7 +90,6 @@ SessionBuilder.prototype = {
         }
 
         if (session !== undefined) {
-            console.log('\n\nabout to archive and close session in processV3, session is:', session)
             record.archiveCurrentState();
         }
         if (message.preKeyId && !preKeyPair) {

@@ -127,8 +127,6 @@ SessionCipher.prototype = {
     }.bind(this));
   },
   decryptWhisperMessage: function(buffer, encoding) {
-      console.log('\n\nbuffer is', buffer);
-      console.log('\n\nencoding is', encoding);
       buffer = dcodeIO.ByteBuffer.wrap(buffer, encoding).toArrayBuffer();
       return Internal.SessionLock.queueJobForNumber(this.remoteAddress.toString(), function() {
         var address = this.remoteAddress.toString();
@@ -150,8 +148,6 @@ SessionCipher.prototype = {
       }.bind(this));
   },
   decryptPreKeyWhisperMessage: function(buffer, encoding) {
-    console.log('\n\nbuffer is', buffer);
-    console.log('\n\nencoding is', encoding);  
     buffer = dcodeIO.ByteBuffer.wrap(buffer, encoding);
       var version = buffer.readUint8();
       if ((version & 0xF) > 3 || (version >> 4) < 3) {  // min version > 3 or max version < 3
