@@ -50,7 +50,7 @@ app.get('/session', (req, res, next) => {
 
 app.post('/message', UserController.saveMessage);
 
-app.get('/get-message/:recipientId', UserController.findIdentity);
+app.get('/message/:recipientId', UserController.retrieveMessages);
 
 // Send shared secret (message)
 //app.post('/session', )

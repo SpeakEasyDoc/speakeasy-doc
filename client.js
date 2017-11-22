@@ -4,6 +4,10 @@ const store = new SignalProtocolStore();
 let recipientObj = {};
 let ourSessionCipher;
 
+// only support one device per user so far
+// default device number is 0
+let myDeviceNumber = 0;
+
 // Load On Ready 
 $(() => {
     $('#register-keys').on('click', registerWithServer);
@@ -240,35 +244,50 @@ const enryptAndSendMessage = (plaintext, recipientAddress) => {
 }
 
 //Decrypting Message:
-const decryptMessage = (ciphertext) => {
+const decryptMessage = () => {
   
-  $.ajax({
-    type: 'GET',
-    url: 'http://localhost:3030/get-message/' + $('#my-username').val(),
-    dataType: 'json',
-    error: () => {
-        console.log('Could not get message from server!');
-    },
-    success: (data) => {
-        console.log('data we got back from GET request', data);
-        ciphertext = util.toArrayBuffer(data.user_info.messagesArray[data.user_info.messagesArray.length - 1]); // retrieve last message only 
-        console.log('\n\nciphertext buffer is', ciphertext);
-        if (recipientObj.user_info.messagesArray.length === 1) {
-            //if it's the first time I am decrypting, then 
-            console.log('inside first if')
-            ourSessionCipher.decryptPreKeyWhisperMessage(ciphertext, 'binary').then(function (plaintext) {
-                console.log('insideSessionCipher')
-                $('#incoming-message-container').append('\n' + util.toString(plaintext));  
-                // return util.toString(plaintext);
-            });
-        } else {
-            console.log('inside else statement')
-            ourSessionCipher.decryptWhisperMessage(ciphertext, 'binary').then(function (plaintext) {
-                $('#incoming-message-container').append('\n' + util.toString(plaintext));  
-                // return util.toString(plaintext);
-            });
+    $.ajax({
+        type: 'GET',
+        url: 'http://localhost:3030/message/' + $('#my-username').val(),
+        dataType: 'json',
+        error: () => {
+            console.log('Could not get message from server!');
+        },
+        success: (messages) => {
+            console.log('data we got back from GET request', messages);
+            
+            // retrieve last message only
+            const ciphertext = util.toArrayBuffer(messages[messages.length - 1].message);
+            
+            // since we are about to decrypt a message sent to us - we are the recipient
+            // so, recipient addess and session cypher are of the client on this end
+            const recipientAddress = new libsignal.SignalProtocolAddress($('#my-username').val(), myDeviceNumber);
+            if (!ourSessionCipher) {
+                ourSessionCipher = new SessionCipher(store, recipientAddress);
+            }
+            
+            console.log('\n\nciphertext buffer is', ciphertext);
+            
+            const currentText = $('#my-message').val();
+            // data is obj we got back from the server about the messages sent to us
+            if (messages.length === 1) {
+                // if it's the first time I am decrypting, then
+                console.log('inside first if', ourSessionCipher)
+                ourSessionCipher.decryptPreKeyWhisperMessage(ciphertext, 'binary').then((plaintext) => {
+                    // this finishes establishing the session and decrypts the first message
+                    // add new message to text already in the textfield
+                    $('#my-message').val(currentText + util.toString(plaintext));  
+                });
+            } else {
+                console.log('inside else statement')
+
+                // session must already exist - only need to decrypt the last message
+                // add new message to text already in the textfield
+                ourSessionCipher.decryptWhisperMessage(ciphertext, 'binary').then((plaintext) => {
+                    $('#my-message').val(currentText + util.toString(plaintext));  
+                });
+            }
         }
-      }
     });
 
 }
