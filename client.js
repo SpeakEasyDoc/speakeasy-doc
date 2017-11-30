@@ -4,6 +4,10 @@ const store = new SignalProtocolStore();
 let recipientObj = {};
 let ourSessionCipher;
 
+// for decryption, need to know whether user has sent a response in this session
+// need this as global at the moment - set when encrypting, access when decrypting
+let haveSentResponse = false;
+
 // only support one device per user so far
 // default device number is 0
 let myDeviceNumber = 0;
@@ -17,7 +21,7 @@ $(() => {
     $('#create-session').on('click', startSession);
 
     // to send following messages, need to only encrypt and send
-    // $('#send-message').on('click', encryptMessage);
+    $('#send-message').on('click', sendMessage);
 
     $('#decrypt-message').on('click', decryptMessage);
 });
@@ -208,6 +212,12 @@ const startSession = () => {
     });
 }
 
+const sendMessage = () => {
+    const recipientAddress = new libsignal.SignalProtocolAddress($('#recipient-id').val(), 0);    
+    const ourPlainText = $('#my-message').val();
+    enryptAndSendMessage(ourPlainText, recipientAddress);
+}
+
 const enryptAndSendMessage = (plaintext, recipientAddress) => {
     console.log("Our session in the store is: ", store.loadSession());
     console.log("Time to send message");
@@ -219,7 +229,7 @@ const enryptAndSendMessage = (plaintext, recipientAddress) => {
     ourSessionCipher.encrypt(plaintext).then(function (ciphertext) {
         console.log('Our ciphertext.body is: ', ciphertext.body);
         const messageToSend = {
-            recipientId: recipientObj.user_info.recipientId,
+            recipientId: $('#recipient-id').val(),
             message: util.toString(ciphertext.body)
         };
         console.log('recipient ID', messageToSend.recipientId)
@@ -236,8 +246,12 @@ const enryptAndSendMessage = (plaintext, recipientAddress) => {
             success: (data) => {
                 //push into messagesArray to let user know if this is the first time decrypting a message
                 console.log('\n\n\n\nData sent back from the server and about to be save in messages array is:\n\n', data)
-                recipientObj.user_info.messagesArray.push(data);
-                console.log('Message sent + encrypted in: ', recipientObj.user_info.messagesArray);
+                // recipientObj.user_info.messagesArray.push(data);
+                // console.log('Message sent + encrypted in: ', recipientObj.user_info.messagesArray);
+                console.log('Message sent + encrypted'); 
+
+                // for decryption, need to know whether user has sent a response in this session
+                haveSentResponse = true;               
             }
         });
     });
@@ -256,33 +270,37 @@ const decryptMessage = () => {
         success: (messages) => {
             console.log('data we got back from GET request', messages);
             
+            const recipientId = $('#recipient-id').val();
+
+            // only support one device per user so far
+            // default device number is 0
+            const recipientDeviceNumber = 0;
+
             // retrieve last message only
             const ciphertext = util.toArrayBuffer(messages[messages.length - 1].message);
             
-            // since we are about to decrypt a message sent to us - we are the recipient
-            // so, recipient addess and session cypher are of the client on this end
-            const recipientAddress = new libsignal.SignalProtocolAddress($('#my-username').val(), myDeviceNumber);
+            // recipient ID is that of our conversation partner
+            const recipientAddress = new libsignal.SignalProtocolAddress(recipientId, recipientDeviceNumber);
             if (!ourSessionCipher) {
                 ourSessionCipher = new SessionCipher(store, recipientAddress);
             }
             
             console.log('\n\nciphertext buffer is', ciphertext);
-            
+
             const currentText = $('#my-message').val();
-            // data is obj we got back from the server about the messages sent to us
-            if (messages.length === 1) {
-                // if it's the first time I am decrypting, then
-                console.log('inside first if', ourSessionCipher)
+
+            if (
+                // if session does not yet exist in the store - have to decrypt with prekey
+                !store.store.hasOwnProperty('session' + recipientId + '.' + recipientDeviceNumber)
+                // if user has not sent a reponse yet - have to decrypt with prekey
+                || !haveSentResponse
+            ) {
                 ourSessionCipher.decryptPreKeyWhisperMessage(ciphertext, 'binary').then((plaintext) => {
                     // this finishes establishing the session and decrypts the first message
                     // add new message to text already in the textfield
                     $('#my-message').val(currentText + util.toString(plaintext));  
                 });
             } else {
-                console.log('inside else statement')
-
-                // session must already exist - only need to decrypt the last message
-                // add new message to text already in the textfield
                 ourSessionCipher.decryptWhisperMessage(ciphertext, 'binary').then((plaintext) => {
                     $('#my-message').val(currentText + util.toString(plaintext));  
                 });
