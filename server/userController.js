@@ -90,32 +90,50 @@ const findIdentity = (req, res, next) => {
                 }
 
                 res.status(200).send(userDataForAlice);
+            }
         }
-    });
+    );
 }
-
-// const startSession = (req, res, next) => {
-//     //send short term one-time keys for messages
-//     //chain message
-// }
 
 const saveMessage = (req, res, next) => {
-  const sentMessage = req.body;
-  console.log('\n\n\n\nIn saveMessage (server): ', req.body);
+    const sentMessage = req.body;
+    console.log('\n\n\n\nIn saveMessage (server): ', req.body);
 
-  User.findOneAndUpdate(
-    { "user_info.recipientId": req.body.recipientId }
-    , { $push: { "user_info.messagesArray": req.body } }
-    , {new: true}
-    , (err, doc) => {
-      if (err) {
-          console.log('Error saving message');
-      } else {
-          console.log('Our recipient\'s message array is: ', doc.user_info.messagesArray);
-          res.status(200).send(doc);
-      }
-  });
-
+    User.findOneAndUpdate(
+        {"user_info.recipientId": req.body.recipientId}
+        , {$push: { "user_info.messagesArray": req.body} }
+        , {new: true}
+        , (err, doc) => {
+            if (err) {
+                console.log('Error saving message');
+            } else {
+                console.log('Our recipient\'s message array is: ', doc.user_info.messagesArray);
+                res.status(200).send(doc);
+            }
+        }
+    );
 }
 
-module.exports = { saveIdentity, findIdentity, saveMessage };
+const retrieveMessages = (req, res, next) => {
+    User.findOne(
+        {"user_info.recipientId": req.params.recipientId}
+        , (err, userData) => {
+            if (err) {
+                console.log('Error retriving messages:', err);
+            } else {
+                console.log('Our recipient\'s message array is: ', userData.user_info.messagesArray);
+                // we do not need to send their own key bundle to the user
+                // (user already has copies of his own keys)
+                // only send the messages on file for the user
+                res.status(200).send(userData.user_info.messagesArray);
+            }
+        }
+    );
+}
+
+module.exports = { 
+    saveIdentity, 
+    findIdentity, 
+    saveMessage, 
+    retrieveMessages
+};

@@ -3,8 +3,11 @@ const Schema = mongoose.Schema;
 
 
 // const mLabURI = 'mongodb://jmora3:Mlab.JMpass3!@ds155841.mlab.com:55841/signal_testdb'; 
-const mLabURI = 'mongodb://signaltest:1234@ds137730.mlab.com:37730/signaluser'; 
+// const mLabURI = 'mongodb://signaltest:1234@ds137730.mlab.com:37730/signaluser'; 
 // Janelle's Mlab uri: 'mongodb://signaltest:1234@ds137730.mlab.com:37730/signaluser'
+
+// Ksenia's mLab:
+const mLabURI = 'mongodb://ksenia:hiJanelle1@ds044667.mlab.com:44667/speakeasydoc-dev'
 
 const URI = process.env.MONGO_URI || mLabURI; 
 
